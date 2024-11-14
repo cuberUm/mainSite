@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Приключения Стива в стране КиберУм</title>
+    <style>
+        /* Общие стили */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-image: url('background.jpg'); /* Замените на ваше фоновое изображение */
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            color: #fff;
+        }
+
+        /* Заголовок */
+        header {
+            width: 100%;
+            padding: 20px 0;
+            background: rgba(0, 0, 0, 0.5);
+            text-align: center;
+            font-size: 2em;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        /* Контейнер уровней */
+        .levels-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 50px 20px;
+            gap: 20px;
+        }
+
+        /* Окно уровня */
+        .level-box {
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 3px solid #fff;
+            border-radius: 10px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s, border-color 0.3s;
+        }
+
+        .level-box:hover {
+            transform: scale(1.05);
+            border-color: #FFD700;
+        }
+
+        /* Изображение внутри окна уровня */
+        .level-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+
+        .level-box:hover img {
+            opacity: 1;
+        }
+
+        /* Текст уровня */
+        .level-box .level-text {
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        /* Модальное окно для слайдов */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 1000; 
+            left: 0;
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            overflow: hidden; 
+            background-color: rgba(0,0,0,0.95); 
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .slide {
+            display: none;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .active-slide {
+            display: block;
+        }
+
+        .next-button {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #ffffffaa;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .next-button:hover {
+            background-color: #ffffff;
+        }
+
+        /* Адаптивность */
+        @media (max-width: 600px) {
+            .level-box {
+                width: 150px;
+                height: 150px;
+            }
+
+            .level-box .level-text {
+                font-size: 1em;
+            }
+
+            header {
+                font-size: 1.5em;
+                padding: 15px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Заголовок -->
+    <header>Приключения Стива в стране КиберУм</header>
+
+    <!-- Контейнер уровней -->
+    <div class="levels-container" id="levelsContainer">
+        <!-- Уровни будут динамически добавлены здесь -->
+    </div>
+
+    <!-- Модальное окно для слайдов -->
+    <div id="slideModal" class="modal">
+        <div class="modal-content">
+            <!-- Слайды будут динамически добавлены здесь -->
+            <button class="next-button" id="nextBtn">Далее</button>
+        </div>
+    </div>
+
+    <script>
+        // Данные для уровней
+        const levels = [
+            {
+                id: 1,
+                name: 'Уровень 1',
+                image: 'level1.png', // Изображение для окна уровня
+                slides: [
+                    { image: 'slide1-1.jpg', audio: 'audio1-1.mp3' },
+                    { image: 'slide1-2.jpg', audio: 'audio1-2.mp3' },
+                    { image: 'slide1-3.jpg', audio: 'audio1-3.mp3' }
+                ],
+                destination: 'https://cuberum.github.io/keyboard/'
+            },
+            // Добавьте новые уровни здесь
+            /*
+            {
+                id: 2,
+                name: 'Уровень 2',
+                image: 'level2.jpg',
+                slides: [
+                    { image: 'slide2-1.jpg', audio: 'audio2-1.mp3' },
+                    { image: 'slide2-2.jpg', audio: 'audio2-2.mp3' }
+                ],
+                destination: 'https://example.com/level2'
+            },
+            */
+        ];
+
+        const levelsContainer = document.getElementById('levelsContainer');
+        const modal = document.getElementById('slideModal');
+        const modalContent = modal.querySelector('.modal-content');
+        const nextBtn = document.getElementById('nextBtn');
+
+        let currentSlides = [];
+        let currentDestination = '';
+        let currentSlideIndex = 0;
+        let audio = null;
+
+        // Функция для создания окна уровня
+        function createLevelBox(level) {
+            const box = document.createElement('div');
+            box.classList.add('level-box');
+            box.dataset.levelId = level.id;
+
+            const img = document.createElement('img');
+            img.src = level.image;
+            img.alt = level.name;
+
+            const text = document.createElement('div');
+            text.classList.add('level-text');
+            text.textContent = level.name;
+
+            box.appendChild(img);
+            box.appendChild(text);
+
+            // Добавляем обработчик клика
+            box.addEventListener('click', () => {
+                startSlides(level.slides, level.destination);
+            });
+
+            return box;
+        }
+
+        // Инициализация уровней на странице
+        function initLevels() {
+            levels.forEach(level => {
+                const levelBox = createLevelBox(level);
+                levelsContainer.appendChild(levelBox);
+            });
+        }
+
+        // Функция запуска слайдов
+        function startSlides(slides, destination) {
+            currentSlides = slides;
+            currentDestination = destination;
+            currentSlideIndex = 0;
+
+            // Открываем модальное окно
+            modal.style.display = 'flex';
+
+            // Очищаем предыдущие слайды
+            const existingSlides = modalContent.querySelectorAll('.slide');
+            existingSlides.forEach(slide => slide.remove());
+
+            // Добавляем новые слайды
+            slides.forEach((slide, index) => {
+                const slideDiv = document.createElement('div');
+                slideDiv.classList.add('slide');
+                if (index === 0) slideDiv.classList.add('active-slide');
+                slideDiv.style.backgroundImage = `url(${slide.image})`;
+                modalContent.insertBefore(slideDiv, nextBtn);
+            });
+
+            showSlide(currentSlideIndex);
+        }
+
+        // Функция отображения текущего слайда
+        function showSlide(index) {
+            const slides = modal.querySelectorAll('.slide');
+            slides.forEach((slide, i) => {
+                slide.classList.toggle('active-slide', i === index);
+            });
+
+            // Воспроизведение аудио
+            if (audio) {
+                audio.pause();
+                audio.currentTime = 0;
+            }
+            audio = new Audio(currentSlides[index].audio);
+            audio.play();
+        }
+
+        // Функция перехода к следующему слайду
+        function nextSlide() {
+            if (currentSlideIndex < currentSlides.length - 1) {
+                currentSlideIndex++;
+                showSlide(currentSlideIndex);
+            } else {
+                // Закрываем модальное окно и перенаправляем
+                modal.style.display = 'none';
+                if (audio) {
+                    audio.pause();
+                    audio.currentTime = 0;
+                }
+                window.location.href = currentDestination;
+            }
+        }
+
+        // Обработчик кнопки "Далее"
+        nextBtn.addEventListener('click', nextSlide);
+
+        // Закрытие модального окна при нажатии вне контента
+        window.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+                if (audio) {
+                    audio.pause();
+                    audio.currentTime = 0;
+                }
+            }
+        });
+
+        // Инициализация при загрузке страницы
+        window.onload = initLevels;
+    </script>
+
+</body>
+</html>
